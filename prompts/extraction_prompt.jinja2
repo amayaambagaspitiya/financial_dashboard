@@ -1,0 +1,35 @@
+You are a financial data extraction expert.
+
+Please carefully read the following extracted financial report text and identify the following key metrics **for the latest quarter only**:
+- Revenue
+- Cost of Goods Sold (COGS)
+- Gross Profit
+- Operating Expenses
+- Operating Income
+- Net Income
+
+ Very important:
+- Prefer **Group** or **Consolidated** numbers, if available. Ignore Company Standalone figures.
+- If any information is missing, return **null** for that field.
+- Remove any commas, spaces, or currency symbols from numbers (example: "Rs 1,234,567" → 1234567).
+- Pick only the **latest quarter** figures if multiple periods are shown.
+
+ Expected Output: Return ONLY a valid JSON object exactly like below. Do not write anything else, no explanation.
+
+Example JSON format:
+{
+  "Revenue": number or null,
+  "COGS": number or null,
+  "GrossProfit": number or null,
+  "OperatingExpenses": number or null,
+  "OperatingIncome": number or null,
+  "NetIncome": number or null
+}
+
+Here is the financial report text:
+
+"""
+{{ text }}
+"""
+
+

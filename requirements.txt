@@ -1,0 +1,16 @@
+pandas
+numpy
+openai
+playwright
+aiohttp
+pydantic
+jinja2
+pmdarima
+matplotlib
+fastapi
+uvicorn
+scikit-learn
+PyYAML
+langchain
+langchain-experimental
+tabulate

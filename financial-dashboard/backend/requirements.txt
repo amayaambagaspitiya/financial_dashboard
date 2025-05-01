@@ -1,0 +1,10 @@
+sentence-transformers
+pandas
+numpy
+openai
+pydantic
+matplotlib
+fastapi
+uvicorn
+PyYAML
+faiss-cpu

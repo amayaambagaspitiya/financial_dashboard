@@ -1,0 +1,9 @@
+pdf_folder: "./data/raw"
+output_csv: "./outputs/financial_metrics.csv"
+prompt_templates:
+  extractor: "./prompts/extraction_prompt.jinja2"
+  preprocessor: "./prompts/preprocessing_prompt.jinja2"
+openai_params:
+  max_tokens: 300
+  temperature: 0.0
+

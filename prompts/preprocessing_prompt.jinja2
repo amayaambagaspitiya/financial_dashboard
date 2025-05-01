@@ -1,0 +1,12 @@
+You are a financial data cleaning assistant.
+
+The following dictionary contains raw extracted financial data from a quarterly financial report. Your job is to:
+- Normalize all numeric values (e.g., "(5,000)" → -5000, "Rs. 1,000,000" → 1000000)
+- Remove currency symbols, commas, and parentheses
+- Convert missing or invalid entries to null
+- Return a valid JSON object with the same keys and structure
+- Do not remove or rename any fields
+
+Here is the raw data:
+
+{{ raw_data }}
