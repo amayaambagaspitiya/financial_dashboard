@@ -16,3 +16,4 @@ langchain-experimental
 tabulate
 selenium
 requests
+pdfplumber

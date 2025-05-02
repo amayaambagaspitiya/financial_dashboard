@@ -1,108 +1,120 @@
 import os
 import time
+import re
+import requests
 from datetime import datetime
 from selenium import webdriver
 from selenium.webdriver.common.by import By
-import requests
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.ui import WebDriverWait
 
-def fetch_quarterly_pdfs_dict(url: str, wait_time: int = 5) -> dict:
-    """
-    Scrape PDF links for quarterly/interim financial reports and return a dict of {date: pdf_link},
-    but only for reports within the last 4 years.
-    """
-    pdf_dict = {}
 
-    options = webdriver.ChromeOptions()
-    options.add_argument("--headless=new")
-    driver = webdriver.Chrome(options=options)
+class SeleniumScraper:
+    def __init__(self, headless=True):
+        chrome_options = Options()
+        if headless:
+            chrome_options.add_argument("--headless=new")
+        chrome_options.add_argument("--window-size=1920,1080")
+        chrome_options.add_argument("--no-sandbox")
+        chrome_options.add_argument("--disable-dev-shm-usage")
 
-    try:
-        driver.get(url)
-        time.sleep(wait_time)
+        prefs = {"download.default_directory": os.getcwd()}
+        chrome_options.add_experimental_option("prefs", prefs)
 
-        rows = driver.find_elements(By.TAG_NAME, "tr")
-        for row in rows:
-            text = row.text.lower()
+        self.driver = webdriver.Chrome(options=chrome_options)
+        self.wait = WebDriverWait(self.driver, 10)
 
-            # Match broader variations of quarterly/interim reports
-            if any(keyword in text for keyword in ["quarterly financial report", "interim financial statement"]):
-                try:
-                    link_element = row.find_element(By.XPATH, './/a[contains(@href, ".pdf")]')
-                    href = link_element.get_attribute("href")
-                except:
-                    continue
+    def fetch_quarterly_pdfs(self, company_symbol):
+        base_url = f"https://www.cse.lk/pages/company-profile/company-profile.component.html?symbol={company_symbol}.N0000"
+        self.driver.get(base_url)
 
-                raw_date = None
-                if "as at" in text:
-                    raw_date = text.split("as at")[-1].strip()
-                elif "as of" in text:
-                    raw_date = text.split("as of")[-1].strip()
-                else:
-                    # Try extracting the last date-like token with dots (e.g., 31.12.2024)
-                    for token in reversed(text.split()):
-                        if any(char.isdigit() for char in token) and "." in token:
-                            raw_date = token.strip()
-                            break
-
-                if not raw_date:
-                    print(f"Could not extract date from: {text}")
-                    continue
-
-                parsed = None
-                for fmt in ("%d-%m-%Y", "%d.%m.%Y", "%d.%m.%y", "%d/%m/%Y", "%d-%m-%y", "%d-%b-%Y"):
-                    try:
-                        parsed = datetime.strptime(raw_date, fmt)
-                        break
-                    except ValueError:
-                        continue
-
-                if parsed:
-                    year = parsed.year
-                    current_year = datetime.now().year
-                    if current_year - 4 <= year <= current_year:
-                        norm_date = parsed.strftime("%Y-%m-%d")
-                        pdf_dict[norm_date] = href
-                    else:
-                        print(f"Ignored old report: {parsed.date()}")
-                else:
-                    print(f"Could not parse date: {raw_date}")
-    finally:
-        driver.quit()
-
-    return pdf_dict
-
-def download_pdfs(pdf_dict: dict, company_symbol: str):
-    """
-    Download all PDFs given a dict of {date: url}.
-    """
-    output_folder = f"./data/raw/{company_symbol}"
-    os.makedirs(output_folder, exist_ok=True)
-
-    for date, url in pdf_dict.items():
-        filename = f"{company_symbol}_{date}.pdf"
-        filepath = os.path.join(output_folder, filename)
         try:
-            resp = requests.get(url)
-            if resp.status_code == 200:
-                with open(filepath, 'wb') as f:
-                    f.write(resp.content)
-                print(f"Downloaded {filename}")
-            else:
-                print(f"Failed to download {filename} - Status {resp.status}")
+            financials_tab = self.wait.until(
+                EC.element_to_be_clickable((By.XPATH, "//a[contains(text(), 'Financials')]"))
+            )
+            financials_tab.click()
+            time.sleep(2)
         except Exception as e:
-            print(f"Error downloading {filename}: {e}")
+            print("Financials tab not found:", e)
+            return []
 
-def main():
-    companies = {
-        "DIPD": "https://www.cse.lk/pages/company-profile/company-profile.component.html?symbol=DIPD.N0000",
-        "REXP": "https://www.cse.lk/pages/company-profile/company-profile.component.html?symbol=REXP.N0000",
-    }
+        try:
+            quarterly_tab = self.wait.until(
+                EC.element_to_be_clickable((By.XPATH, "//*[contains(text(), 'Quarterly Reports')]"))
+            )
+            quarterly_tab.click()
+            time.sleep(2)
+        except Exception as e:
+            print("Quarterly Reports tab not found:", e)
+            return []
 
-    for symbol, url in companies.items():
-        print(f"Fetching reports for {symbol}")
-        pdf_links = fetch_quarterly_pdfs_dict(url)
-        print(f"Found {len(pdf_links)} reports for {symbol}")
-        download_pdfs(pdf_links, symbol)
+        pdf_links = []
+        current_year = datetime.now().year
 
-if __name__ == "__main__":
-    main()
+        try:
+            rows = self.wait.until(
+                EC.presence_of_all_elements_located((By.XPATH, "//table[@class='data-table']//tbody//tr"))
+            )
+            for row in rows:
+                try:
+                    report_text = row.text.lower()
+                    print("ROW TEXT:", report_text)
+
+                    if any(keyword in report_text for keyword in ["quarterly", "interim", "3 months", "six months"]):
+                        year = self.extract_year(report_text)
+                        if year and (current_year - 4 <= year <= current_year):
+                            pdf_icon = row.find_element(By.XPATH, ".//a[contains(@href, '.pdf')]")
+                            pdf_url = pdf_icon.get_attribute("href")
+                            if pdf_url:
+                                print(f"Found report ({year}): {pdf_url}")
+                                pdf_links.append(pdf_url)
+                        else:
+                            print(f"Ignored old or undated report: {report_text}")
+                except Exception as e:
+                    print(f"Error extracting row: {e}")
+        except Exception as e:
+            print(f"Error finding table rows: {e}")
+
+        self.download_pdf(pdf_links, company_symbol)
+        return pdf_links
+
+    def extract_year(self, text):
+        """Extract year from text, return as int if found, else None"""
+        match = re.search(r'(20\d{2})', text)
+        if match:
+            return int(match.group(1))
+        return None
+
+    def download_pdf(self, pdf_urls, company_symbol):
+        # Use project root path: go two levels up from this script
+        project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+        output_dir = os.path.join(project_root, "data", "raw", company_symbol)
+        os.makedirs(output_dir, exist_ok=True)
+        saved_paths = []
+
+        for idx, pdf_url in enumerate(pdf_urls):
+            try:
+                if not pdf_url.startswith("http"):
+                    print(f"Invalid URL: {pdf_url}")
+                    continue
+
+                response = requests.get(pdf_url)
+                if response.status_code == 200:
+                    filename = f"{company_symbol}_quarterly_{idx + 1}.pdf"
+                    filepath = os.path.join(output_dir, filename)
+                    with open(filepath, "wb") as f:
+                        f.write(response.content)
+                    saved_paths.append(filepath)
+                    print(f"Downloaded: {filepath}")
+                else:
+                    print(f"Failed to download PDF: {pdf_url} (status {response.status_code})")
+            except Exception as e:
+                print(f"Error downloading {pdf_url}: {e}")
+
+        return saved_paths
+
+    def close(self):
+        self.driver.quit()
+
+

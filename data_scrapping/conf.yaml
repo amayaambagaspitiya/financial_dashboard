@@ -1,6 +1,9 @@
 pdf_folder: "./data/raw"
 output_csv: "./outputs/financial_metrics.csv"
-prompt_templates:
+preprocessed_csv: "./outputs/processed_dataset.csv"
+preorocessed_json: "./outputs/processed_dataset.json"
+dashboard_preprocessed_json: "./financial-dashboard/data/backend/processed_dataset.json"
+cdprompt_templates:
   extractor: "./prompts/extraction_prompt.jinja2"
   preprocessor: "./prompts/preprocessing_prompt.jinja2"
 openai_params:

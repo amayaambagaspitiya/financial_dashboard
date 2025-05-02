@@ -22,11 +22,9 @@ class Preprocessing:
         config = load_config()
 
         input_csv = config["output_csv"]
-        output_csv = "./outputs/processed_dataset.csv"
-        output_json = "./outputs/processed_dataset.json"
-        output_json_dashboard = r"C:\Users\ASUS\Desktop\project_quater_analysis\financial-dashboard\backend\data\processed_dataset.json"
-
-
+        output_csv = config["preprocessd_csv"]
+        output_json = config["preprocessed_json"]
+        output_json_dashboard = config["dashboard_preprocessed_json"]
 
         if not os.path.exists(input_csv):
             print(f"Input file not found: {input_csv}")

@@ -2,12 +2,19 @@ print("MAIN.PY STARTED")
 from src.utils.config_utils import load_config
 from src.extraction.extraction import Extraction
 from src.preprocessing.preprocessing import Preprocessing
+from src.scrapper.download_pdfs import SeleniumScraper
 import subprocess
 import os
 import sys
 
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
 os.chdir(PROJECT_ROOT)
+
+# scraper = SeleniumScraper(headless=True)
+# for symbol in ["DIPD", "REXP"]:
+#     print(f"\nFetching reports for {symbol}")
+#     scraper.fetch_quarterly_pdfs(symbol)
+# scraper.close()
 
 def run_extraction():
     print("Starting Extraction Step")

@@ -45,7 +45,7 @@ class Extraction:
 
                 prompt = extractor.create_prompt(text)
                 response = extractor.query_openai(prompt)
-                data = extractor.parse_response(response)
+                data = extractor.parse_response(response)                
 
                 if "error" in data:
                     print(f"Extraction failed for: {pdf_file}")
