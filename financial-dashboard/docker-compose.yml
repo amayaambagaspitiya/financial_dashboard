@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   frontend:
     build:
@@ -14,5 +12,10 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+      no_cache: true
     ports:
-      - "5000:5000"
+      - "8000:8000"
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OPENAI_END_POINT=${OPENAI_END_POINT}
+      - OPENAI_MODEL=${OPENAI_MODEL}

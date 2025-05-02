@@ -14,3 +14,5 @@ PyYAML
 langchain
 langchain-experimental
 tabulate
+selenium
+requests

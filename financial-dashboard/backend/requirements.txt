@@ -1,3 +1,4 @@
+torch
 sentence-transformers
 pandas
 numpy
@@ -8,3 +9,5 @@ fastapi
 uvicorn
 PyYAML
 faiss-cpu
+dotenv
+hf_xet

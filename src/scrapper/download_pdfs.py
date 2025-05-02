@@ -1,47 +1,55 @@
-import aiohttp
-import asyncio
-from playwright.async_api import async_playwright
-from datetime import datetime
 import os
+import time
+from datetime import datetime
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+import requests
 
-async def fetch_quarterly_pdfs_dict(url: str, timeout_duration: int) -> dict:
+def fetch_quarterly_pdfs_dict(url: str, wait_time: int = 5) -> dict:
     """
-    Scrape PDF links for quarterly/interim financial reports and return a dict of {date: pdf_link}.
+    Scrape PDF links for quarterly/interim financial reports and return a dict of {date: pdf_link},
+    but only for reports within the last 4 years.
     """
     pdf_dict = {}
-    async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=True)
-        page = await browser.new_page()
-        await page.goto(url)
-        await page.wait_for_timeout(timeout_duration)
 
-        rows = await page.query_selector_all("tr")
+    options = webdriver.ChromeOptions()
+    options.add_argument("--headless=new")
+    driver = webdriver.Chrome(options=options)
+
+    try:
+        driver.get(url)
+        time.sleep(wait_time)
+
+        rows = driver.find_elements(By.TAG_NAME, "tr")
         for row in rows:
-            text = await row.inner_text()
+            text = row.text.lower()
 
-              #Match both DIPD and REXP formats
-            if ("Quarterly Financial report as of" in text) or ("Interim Financial Statement" in text):
-                link = await row.query_selector('a[href$=".pdf"]')
-                if not link:
+            # Match broader variations of quarterly/interim reports
+            if any(keyword in text for keyword in ["quarterly financial report", "interim financial statement"]):
+                try:
+                    link_element = row.find_element(By.XPATH, './/a[contains(@href, ".pdf")]')
+                    href = link_element.get_attribute("href")
+                except:
                     continue
-                href = await link.get_attribute('href')
 
-                # Extract raw date
                 raw_date = None
                 if "as at" in text:
                     raw_date = text.split("as at")[-1].strip()
-                elif "-" in text:
-                    parts = text.split("-")
-                    if len(parts) >= 2:
-                        raw_date = parts[-1].strip()
+                elif "as of" in text:
+                    raw_date = text.split("as of")[-1].strip()
+                else:
+                    # Try extracting the last date-like token with dots (e.g., 31.12.2024)
+                    for token in reversed(text.split()):
+                        if any(char.isdigit() for char in token) and "." in token:
+                            raw_date = token.strip()
+                            break
 
                 if not raw_date:
-                    print(f"⚠️ Could not extract date from: {text}")
+                    print(f"Could not extract date from: {text}")
                     continue
 
-                # Try parsing with multiple formats
                 parsed = None
-                for fmt in ("%d-%m-%Y", "%d.%m.%Y", "%d.%m.%y", "%d/%m/%Y", "%d-%m-%y", "%d-%b-%Y", "%d.%m.%Y"):
+                for fmt in ("%d-%m-%Y", "%d.%m.%Y", "%d.%m.%y", "%d/%m/%Y", "%d-%m-%y", "%d-%b-%Y"):
                     try:
                         parsed = datetime.strptime(raw_date, fmt)
                         break
@@ -49,47 +57,52 @@ async def fetch_quarterly_pdfs_dict(url: str, timeout_duration: int) -> dict:
                         continue
 
                 if parsed:
-                    norm_date = parsed.strftime("%Y-%m-%d")
-                    pdf_dict[norm_date] = href
+                    year = parsed.year
+                    current_year = datetime.now().year
+                    if current_year - 4 <= year <= current_year:
+                        norm_date = parsed.strftime("%Y-%m-%d")
+                        pdf_dict[norm_date] = href
+                    else:
+                        print(f"Ignored old report: {parsed.date()}")
                 else:
                     print(f"Could not parse date: {raw_date}")
+    finally:
+        driver.quit()
 
-        await browser.close()
     return pdf_dict
 
-async def download_pdfs(pdf_dict: dict, company_symbol: str):
+def download_pdfs(pdf_dict: dict, company_symbol: str):
     """
     Download all PDFs given a dict of {date: url}.
     """
     output_folder = f"./data/raw/{company_symbol}"
     os.makedirs(output_folder, exist_ok=True)
 
-    async with aiohttp.ClientSession() as session:
-        for date, url in pdf_dict.items():
-            filename = f"{company_symbol}_{date}.pdf"
-            filepath = os.path.join(output_folder, filename)
-            try:
-                async with session.get(url) as resp:
-                    if resp.status == 200:
-                        with open(filepath, 'wb') as f:
-                            f.write(await resp.read())
-                        print(f" Downloaded {filename}")
-                    else:
-                        print(f"Failed to download {filename} - Status {resp.status}")
-            except Exception as e:
-                print(f"Error downloading {filename}: {e}")
+    for date, url in pdf_dict.items():
+        filename = f"{company_symbol}_{date}.pdf"
+        filepath = os.path.join(output_folder, filename)
+        try:
+            resp = requests.get(url)
+            if resp.status_code == 200:
+                with open(filepath, 'wb') as f:
+                    f.write(resp.content)
+                print(f"Downloaded {filename}")
+            else:
+                print(f"Failed to download {filename} - Status {resp.status}")
+        except Exception as e:
+            print(f"Error downloading {filename}: {e}")
 
-async def main():
+def main():
     companies = {
         "DIPD": "https://www.cse.lk/pages/company-profile/company-profile.component.html?symbol=DIPD.N0000",
         "REXP": "https://www.cse.lk/pages/company-profile/company-profile.component.html?symbol=REXP.N0000",
     }
 
     for symbol, url in companies.items():
-        print(f"🔎 Fetching reports for {symbol}")
-        pdf_links = await fetch_quarterly_pdfs_dict(url, timeout_duration=5000)
+        print(f"Fetching reports for {symbol}")
+        pdf_links = fetch_quarterly_pdfs_dict(url)
         print(f"Found {len(pdf_links)} reports for {symbol}")
-        await download_pdfs(pdf_links, symbol)
+        download_pdfs(pdf_links, symbol)
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()

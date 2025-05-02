@@ -10,9 +10,9 @@ from openai import OpenAI
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 # Load JSON dataset
-with open("src/data/processed_dataset.json", "r", encoding="utf-8") as f:
+with open("data/processed_dataset.json", "r", encoding="utf-8") as f:
     raw_data = json.load(f)
-
+    
 df = pd.json_normalize(raw_data)
 
 # Load embedding model
