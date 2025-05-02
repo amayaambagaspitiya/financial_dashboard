@@ -91,7 +91,8 @@ python -m src.pipeline.main
 
 
 2. **View Dashboard and Chat:**
-   - Access via [http://localhost:3000](http://localhost:3000)
+   - Access via [http://localhost:3000](http://localhost:3000) (for dashboard)
+   - http://localhost:3000/chatbot (For chatbot)
 
 ---
 
