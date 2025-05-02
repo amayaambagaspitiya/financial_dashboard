@@ -33,27 +33,11 @@ class Preprocessing:
         preprocessor = PreprocessingAgent(config=config)
         df = pd.read_csv(input_csv)
 
-        # Extract year and quarter from 'file' column
-        def extract_year_quarter(filename):
-            try:
-                date_part = filename.split("_")[1].replace(".pdf", "")
-                year, month, _ = date_part.split("-")
-                month = int(month)
-                if 1 <= month <= 3:
-                    quarter = "Q1"
-                elif 4 <= month <= 6:
-                    quarter = "Q2"
-                elif 7 <= month <= 9:
-                    quarter = "Q3"
-                else:
-                    quarter = "Q4"
-                return int(year), quarter
-            except Exception:
-                return None, None
-
-        df["year"], df["quarter"] = zip(*df["file"].map(extract_year_quarter))
-
         cleaned_data = []
+        df = df.sort_values(by=["company", "Year", "Quarter"], ascending=[True, False, True])
+
+        df["Year"] = df["Year"].ffill().bfill()
+        df["Quarter"] = df["Quarter"].ffill().bfill()
 
         for idx, row in df.iterrows():
             raw_data = row.to_dict()
@@ -67,15 +51,22 @@ class Preprocessing:
                 print(f"Preprocessing failed for: {raw_data.get('file', 'Unknown')}")
                 continue
 
-            # Retain metadata fields
             cleaned["company"] = raw_data.get("company")
+
             cleaned["file"] = raw_data.get("file")
-            cleaned["year"] = raw_data.get("year")
-            cleaned["quarter"] = raw_data.get("quarter")
+           
+
+           
+
             cleaned_data.append(cleaned)
 
         # Save to CSV and JSON
         final_df = pd.DataFrame(cleaned_data)
+        final_df = final_df.rename(columns={
+                            "Year": "year",
+                            "Quarter": "quarter",
+                        })
+    
         os.makedirs(os.path.dirname(output_csv), exist_ok=True)
         final_df.to_csv(output_csv, index=False)
         final_df.to_json(output_json, orient="records")

@@ -20,8 +20,9 @@ def run_extraction():
     print("Starting Extraction Step")
     try:
         result = Extraction().run_extraction()
-    except:
+    except Exception as e:
         print("extraction failed")
+        raise e
 
   
 
@@ -29,13 +30,14 @@ def run_preprocessing():
     print("Starting Preprocessing Step")
     try:
         result= Preprocessing().run_preprocessing()
-    except:
+    except Exception as e:
         print("preprocessing failed")
+        raise e
     
 
 def main():
     print("Main function started")
-    run_extraction() 
+    # run_extraction() 
     run_preprocessing()
     print("Pipeline Completed Successfully.")
 

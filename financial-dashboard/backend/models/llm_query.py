@@ -6,28 +6,22 @@ import faiss
 from sentence_transformers import SentenceTransformer
 from openai import OpenAI
 
-# Initialize OpenAI client
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-# Load JSON dataset
 with open("data/processed_dataset.json", "r", encoding="utf-8") as f:
     raw_data = json.load(f)
-    
+
 df = pd.json_normalize(raw_data)
 
-# Load embedding model
 model = SentenceTransformer("all-MiniLM-L6-v2")
 
-# Convert rows to text
 texts = df.apply(lambda row: f"{row.to_dict()}", axis=1).tolist()
 embeddings = model.encode(texts, convert_to_numpy=True)
 
-# Build FAISS index
 dimension = embeddings.shape[1]
 index = faiss.IndexFlatL2(dimension)
 index.add(embeddings)
 
-# Semantic search
 def search_context(query, top_k=5):
     query_embedding = model.encode([query])
     distances, indices = index.search(np.array(query_embedding), top_k)
@@ -37,7 +31,6 @@ def search_context(query, top_k=5):
         print(f"\n--- Result {i} ---\n{chunk}")
     return results
 
-# LLM-powered answer
 def answer_query(query, _df):
     top_chunks = search_context(query, top_k=5)
     context = "\n---\n".join(top_chunks)

@@ -20,7 +20,6 @@ class Extraction:
         - Saves the results into outputs/financial_metrics.csv
         """
         config = load_config()
-
         extractor = FinancialExtractorAgent(config=config)
         pdf_folder = config["pdf_folder"]
         output_csv = config["output_csv"]

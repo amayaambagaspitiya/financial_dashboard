@@ -20,28 +20,22 @@ function Dashboard() {
 
   const filterData = () => {
     return data.filter(item => {
-      const year = item.file.split('_')[1].split('-')[0];
-      const month = item.file.split('_')[1].split('-')[1];
-      const quarter =
-        (month === '03' && 'Q1') ||
-        (month === '06' && 'Q2') ||
-        (month === '09' && 'Q3') ||
-        (month === '12' && 'Q4') ||
-        '';
-
       return (
         (selectedCompany === 'All' || item.company === selectedCompany) &&
-        (selectedYear === 'All' || year === selectedYear) &&
-        (selectedQuarter === 'All' || quarter === selectedQuarter)
+        (selectedYear === 'All' || item.year.toString() === selectedYear) &&
+        (selectedQuarter === 'All' || item.quarter === selectedQuarter)
       );
     });
   };
 
-  const filteredData = filterData();
+  const filteredData = filterData().map(item => ({
+    ...item,
+    label: `${item.quarter}-${item.year}`,
+  }));
 
   return (
     <div style={{ padding: '20px', fontFamily: 'Arial, sans-serif' }}>
-      <h1 style={{ textAlign: 'center' }}>Financial Dashboard (Live Data)</h1>
+      <h1 style={{ textAlign: 'center' }}>Financial Dashboard</h1>
       <FilterBar
         selectedCompany={selectedCompany}
         setSelectedCompany={setSelectedCompany}

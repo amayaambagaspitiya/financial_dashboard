@@ -7,14 +7,24 @@ Please carefully read the following extracted financial report text and identify
 - Operating Expenses
 - Operating Income
 - Net Income
+- The date or period that the statement covers (e.g., "for the 3 months ended 31st March 2024")
 
- Very important:
+Also, determine the **fiscal quarter (Q1, Q2, Q3, or Q4)** and **fiscal year** that the latest financial figures correspond to. Use the following fiscal year rules:
+- Fiscal year starts on **April 1st** and ends on **March 31st**.
+- Quarter 1 (Q1): April–June
+- Quarter 2 (Q2): July–September
+- Quarter 3 (Q3): October–December
+- Quarter 4 (Q4): January–March
+
+If this information is not clearly available in the text, return **null** for both quarter and year.
+
+Very important:
 - Prefer **Group** or **Consolidated** numbers, if available. Ignore Company Standalone figures.
 - If any information is missing, return **null** for that field.
 - Remove any commas, spaces, or currency symbols from numbers (example: "Rs 1,234,567" → 1234567).
 - Pick only the **latest quarter** figures if multiple periods are shown.
 
- Expected Output: Return ONLY a valid JSON object exactly like below. Do not write anything else, no explanation.
+Expected Output: Return ONLY a valid JSON object exactly like below. Do not write anything else, no explanation.
 
 Example JSON format:
 {
@@ -23,7 +33,10 @@ Example JSON format:
   "GrossProfit": number or null,
   "OperatingExpenses": number or null,
   "OperatingIncome": number or null,
-  "NetIncome": number or null
+  "NetIncome": number or null,
+  "StatementDate": "31/03/2024"
+  "Quarter": "Qx" or null,
+  "Year": 2024 or null
 }
 
 Here is the financial report text:
@@ -31,5 +44,3 @@ Here is the financial report text:
 """
 {{ text }}
 """
-
-
